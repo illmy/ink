@@ -1,0 +1,15 @@
+{
+    "name": "illmy/ink",
+    "description": "ink",
+    "require": {
+        "php": ">=7.1.0",
+        "psr/log": "^1.1"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "illmy",
+            "email": "1549441501@qq.com"
+        }
+    ]
+}
