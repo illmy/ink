@@ -1,15 +1,26 @@
 <?php 
 namespace elaborate\orm\db;
 
-class PDOConnection
+use PDO;
+
+abstract class PDOConnection
 {
     public function connect()
     {
         
     }
 
-    public function createPdo()
+    /**
+     * pdo实例
+     *
+     * @param string $dsn
+     * @param string $username
+     * @param string $password
+     * @param string $params
+     * @return PDO
+     */
+    protected function createPdo($dsn, $username, $password, $params)
     {
-        
+        return new PDO($dsn, $username, $password, $params); 
     }
 }

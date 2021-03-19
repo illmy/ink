@@ -47,8 +47,9 @@ class Dispatch
             $result = explode('/', $result);
         }
 
+        
         // 获取控制器名
-        $controller = strip_tags($result[0]);
+        $controller = strip_tags($result[0] ?: 'index');
 
         if (strpos($controller, '.')) {
             $pos              = strrpos($controller, '.');
@@ -58,7 +59,7 @@ class Dispatch
         }
 
         // 获取操作名
-        $this->actionName = strip_tags($result[1]);
+        $this->actionName = strip_tags($result[1] ?: 'index');
 
         // 设置当前请求的控制器、操作
         $this->request

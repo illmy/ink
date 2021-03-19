@@ -1,4 +1,5 @@
 <?php
+
 namespace elaborate;
 
 class Application extends Container
@@ -199,7 +200,7 @@ class Application extends Container
         $this->loadMiddleware();
 
         // 执行中间件
-        $response = $this->app->middleware->pipeline(function() use ($request) {
+        $response = $this->app->middleware->pipeline(function () use ($request) {
             // 路由调度  
             return $this->dispatchToRoute($request);
         });
@@ -216,6 +217,18 @@ class Application extends Container
     {
         $this->load();
         date_default_timezone_set($this->config->get('app.default_timezone', 'Asia/Shanghai'));
+
+        $this->provider();
+    }
+
+    /**
+     * 注入服务器
+     *
+     * @return void
+     */
+    protected function provider(): void
+    {
+        $db = $this->app->make('db');
     }
 
     /**
