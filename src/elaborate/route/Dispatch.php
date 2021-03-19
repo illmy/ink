@@ -9,7 +9,7 @@ use elaborate\Application;
 use elaborate\Request;
 use elaborate\exception\HttpException;
 use elaborate\exception\ClassNotFoundException;
-use elaborate\Router;
+use elaborate\Route;
 use elaborate\Response;
 
 /**
@@ -27,13 +27,13 @@ class Dispatch
 
     protected $param;
 
-    public function __construct(Request $request, Router $router, $dispatch)
+    public function __construct(Request $request, Route $route, $dispatch)
     {
         // 解析默认的URL规则
         $dispatch = $this->parseUrl($dispatch);
 
         $this->request  = $request;
-        $this->router   = $router;
+        $this->route   = $route;
         $this->dispatch = $dispatch;
     }
 

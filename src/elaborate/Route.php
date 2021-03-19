@@ -7,9 +7,11 @@ use elaborate\route\Dispatch;
 /** 
  * 路由
  */
-class Router
+class Route
 {
     protected $app;
+
+    protected $config = [];
 
     /**
      * 请求对象
@@ -89,6 +91,6 @@ class Router
      */
     public function url(string $url): Dispatch
     {
-        return new Dispatch($this->request, $this->group, $url);
+        return new Dispatch($this->request, $this, $url);
     }
 }

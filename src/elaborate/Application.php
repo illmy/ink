@@ -65,6 +65,8 @@ class Application extends Container
         'Log' => Log::class,
         'request' => Request::class,
         'response' => Response::class,
+        'middleware' => Middleware::class,
+        'route' => Route::class,
         'Psr\Log\LoggerInterface' => Log::class
     ];
 
@@ -185,7 +187,7 @@ class Application extends Container
     /**
      * 运行应用
      *
-     * @return void
+     * @return Response
      */
     public function run()
     {

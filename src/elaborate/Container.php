@@ -35,13 +35,25 @@ class Container
      */
     public $instances = [];
 
+    /**
+     * 获取当前容器的实例（单例）
+     * @return static
+     */
+    public static function getInstance()
+    {
+        if (is_null(static::$instance)) {
+            static::$instance = new static;
+        }
+
+        return static::$instance;
+    }
+
     public static function setInstance()
     {
     }
 
     /**
      * 获取容器中的对象实例
-     * @access public
      * @param string $abstract 类名或者标识
      * @return object
      */
@@ -101,7 +113,7 @@ class Container
      */
     public function bound(string $abstract): bool
     {
-        return isset($this->bind[$abstract]) || isset($this->instances[$abstract]);
+        return isset($this->bindings[$abstract]) || isset($this->instances[$abstract]);
     }
 
     /**
