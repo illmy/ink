@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace elaborate\orm\db\builder;
 
@@ -9,7 +9,29 @@ use elaborate\orm\db\PDOConnection;
  */
 class Mysql extends PDOConnection
 {
-    protected function parseDsn()
+    /**
+     * 解析DSN
+     *
+     * @param array $config
+     * @return string
+     */
+    protected function parseDsn(array $config = []): string
+    {
+        if (!empty($config['hostport'])) {
+            $dsn = 'mysql:host=' . $config['hostname'] . ';port=' . $config['hostport'];
+        } else {
+            $dsn = 'mysql:host=' . $config['hostname'];
+        }
+        $dsn .= ';dbname=' . $config['database'];
+
+        if (!empty($config['charset'])) {
+            $dsn .= ';charset=' . $config['charset'];
+        }
+
+        return $dsn;
+    }
+
+    protected function parseSql()
     {
         
     }

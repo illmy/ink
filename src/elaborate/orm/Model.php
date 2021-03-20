@@ -14,6 +14,10 @@ class Model
      */
     protected $data;
 
+    protected $origin;
+
+    protected $name;
+
     protected $table;
 
     /**
@@ -24,6 +28,8 @@ class Model
     protected $pk = 'id';
 
     protected $connection;
+
+    protected static $db;
 
     /**
      * 实例过的模型
@@ -41,6 +47,13 @@ class Model
     {
         $this->data = $data;
 
+        if (empty($this->name)) {
+            // 当前模型名
+            $name       = str_replace('\\', '/', static::class);
+            $this->name = basename($name);
+        }
+        $this->origin = $this->data;
+        
         $this->initialize();
     }
 
@@ -56,30 +69,25 @@ class Model
     {
     }
 
-    public function newInstance()
+    public function newInstance(array $data = [])
     {
+        $model = new static($data);
 
+        return $model;
     }
 
-    public function setDB($db)
+    public static function setDB(Db $db)
     {
-        
+        self::$db = $db;
     }
 
     public function db()
     {
-    }
+        $query = self::$db->connect($this->connection);
 
-    public function where()
-    {
-    }
+        $query->model($this);
 
-    public function find()
-    {
-    }
-
-    public function select()
-    {
+        return $query;
     }
 
     public function save()
@@ -89,5 +97,17 @@ class Model
     public function destory()
     {
 
+    }
+
+    public function __call($method, $args)
+    {
+        return call_user_func_array([$this->db(), $method], $args);
+    }
+
+    public static function __callStatic($method, $args)
+    {
+        $model = new static();
+
+        return call_user_func_array([$model->db(), $method], $args);
     }
 }
