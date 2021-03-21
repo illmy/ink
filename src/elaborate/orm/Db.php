@@ -15,7 +15,7 @@ class Db
 
     protected $config;
 
-    public function __contruct(Config $config)
+    public function __construct(Config $config)
     {
         $this->config = $config;
     }
@@ -39,10 +39,16 @@ class Db
         return $this->instance[$name];
     }
 
+    /**
+     * 新链接
+     *
+     * @param string $name
+     * @return PDOConnection
+     */
     private function newConnection(string $name)
     {
         $connections = $this->getConfig('connections');
-        if (!empty($connections[$name])) {
+        if (empty($connections[$name])) {
             throw new InvalidArgumentException('链接不存在');
         }
 
@@ -50,12 +56,12 @@ class Db
 
         $type = !empty($config['type']) ? $config['type'] : 'mysql';
 
-        $class = 'elaborate\\orm\\db\\builder' . studly($type);
+        $class = 'elaborate\\orm\\db\\builder\\' . studly($type);
 
         $connection = new $class($config);
         $connection->setDb($this);
 
-        return $connections;
+        return $connection;
     }
 
     /**
@@ -64,11 +70,17 @@ class Db
      * @param string $name
      * @return array|string
      */
-    public function getConfig(string $name, string $default = null)
+    public function getConfig(string $name = '', string $default = null)
     {
         if (empty($name)) {
             return $this->config->get('database', []);
         }
-        return $this->config->get('database' . $name, $default);
+        return $this->config->get('database.' . $name, $default);
     }
+
+    public function __call($method, $args)
+    {
+        return call_user_func_array([$this->connect(), $method], $args);
+    }
+
 }

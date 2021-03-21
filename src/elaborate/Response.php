@@ -87,11 +87,11 @@ abstract class Response
      * @param  mixed  $data 输出数据
      * @param  string $type 输出类型
      * @param  int    $code 状态码
-     * @return Response
+     * @return Response|Json
      */
     public static function create($data = '', string $type = 'html', int $code = 200): Response
     {
-        $class = false !== strpos($type, '\\') ? $type : '\\think\\response\\' . ucfirst(strtolower($type));
+        $class = false !== strpos($type, '\\') ? $type : '\\elaborate\\response\\' . ucfirst(strtolower($type));
 
         return Container::getInstance()->invokeClass($class, [$data, $code]);
     }

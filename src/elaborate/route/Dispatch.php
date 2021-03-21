@@ -97,7 +97,7 @@ class Dispatch
         }
 
         $data = $this->app->invokeReflectMethod($instance, $reflect, $vars);
-
+        
         return $this->autoResponse($data);
     }
 
@@ -175,9 +175,9 @@ class Dispatch
         $class = $this->app->parseClass($controllerLayer, $name);
 
         if (class_exists($class)) {
-            return $this->app->make($class, [], true);
+            return $this->app->make($class, []);
         } elseif ($emptyController && class_exists($emptyClass = $this->app->parseClass($controllerLayer, $emptyController))) {
-            return $this->app->make($emptyClass, [], true);
+            return $this->app->make($emptyClass, []);
         }
 
         throw new ClassNotFoundException('class not exists:' . $class, $class);

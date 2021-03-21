@@ -14,7 +14,15 @@ abstract class PDOConnection
      */
     protected $config = [];
 
-    protected $params = [];
+    protected $table;
+
+    protected $params = [
+        PDO::ATTR_CASE              => PDO::CASE_NATURAL,
+        PDO::ATTR_ERRMODE           => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_ORACLE_NULLS      => PDO::NULL_NATURAL,
+        PDO::ATTR_STRINGIFY_FETCHES => false,
+        PDO::ATTR_EMULATE_PREPARES  => false,
+    ];
 
     /**
      * 链接记录
@@ -147,6 +155,13 @@ abstract class PDOConnection
         return new PDO($dsn, $username, $password, $params); 
     }
 
+    public function table(string $table)
+    {
+        $this->table = $table;
+
+        return $this;
+    }
+
     /**
      * 执行查询 返回数据集
      * @param string $sql    sql指令
@@ -159,9 +174,9 @@ abstract class PDOConnection
 
         $result = $this->getResult();
 
-        if (!empty($this->model)) {
-            $this->resultToModel($result);
-        }
+        // if (!empty($this->model)) {
+        //     $this->resultToModel($result);
+        // }
 
         return $result;
     }
@@ -221,12 +236,15 @@ abstract class PDOConnection
     /**
      * 设置查询条件
      *
-     * @param array $where
+     * @param string $field
+     * @param string $operator
+     * @param mixed $value
      * @return $this
      */
-    public function where(array $where = [])
+    public function where(string $field, string $operator, $value)
     {
-        $this->where = array_merge($this->where, $where);
+        $where = [$field, $operator, $value];
+        array_push($this->where, $where);
 
         return $this;
     }
@@ -241,11 +259,13 @@ abstract class PDOConnection
     public function groupBy(string $field)
     {
         $this->groupBy = $field;
+        return $this;
     }
 
     public function orderBy(string $orderField, string $orderWay = 'ASC')
     {
         $this->orderBy = [$orderField, $orderWay];
+        return $this;
     }
 
     public function limit(int $start = 0, int $limit = 0)
@@ -276,15 +296,40 @@ abstract class PDOConnection
     {
         $this->limit(1);
         $sql = $this->parseQuerySql();
+
         $result = $this->query($sql, $this->bind);
         
+        $this->clearQuery();
+
         return array_shift($result);
+    }
+
+    public function clearQuery()
+    {
+        $this->where = [];
+
+        $this->field = [];
+
+        $this->orderBy = [];
+
+        $this->limit = [];
+
+        $this->join = [];
+
+        $this->groupBy = '';
+
+        $this->alias = '';
+        
+        $this->bind = [];
     }
 
     public function select()
     {
         $sql = $this->parseQuerySql();
+
         $result = $this->query($sql, $this->bind);
+
+        $this->clearQuery();
 
         return $result;
     }
@@ -293,7 +338,7 @@ abstract class PDOConnection
     {
         $querySql = "SELECT %FIELD% FROM %TABLE% %ALIAS% %JOIN% WHERE %WHERE% %GROUP% %ORDER% %LIMIT%";
 
-        $fields = implode(',', $this->field);
+        $fields = empty($this->field) ? '*' : implode(',', $this->field);
 
         $join = [];
         if (!empty($this->join)) {
@@ -331,10 +376,10 @@ abstract class PDOConnection
             $alias = "as {$this->alias}"; 
         }
         return str_replace(
-            ['%FIELD', '%TABLE%', '%ALIAS%', '%JOIN%', '%WHERE%', '%GROUP%', '%ORDER%', '%LIMIT%'],
+            ['%FIELD%', '%TABLE%', '%ALIAS%', '%JOIN%', '%WHERE%', '%GROUP%', '%ORDER%', '%LIMIT%'],
             [
-                $this->table,
                 $fields,
+                $this->table,
                 $alias,
                 $join,
                 $this->parseWhere(),
@@ -443,11 +488,12 @@ abstract class PDOConnection
     {
         $where = [];
         $bind = [];
-        foreach ($this->where as $key => $value) {
+        foreach ($this->where as $value) {
             $where[] = $value[0] . ' ' . $value[1] . ' :' . $value[0];
             $bind[$value[0]] = $value[2];
         }
         $this->bind = array_merge($this->bind, $bind);
+
         return implode(' and ', $where);
     }
 

@@ -28,7 +28,7 @@ class Route
     public function __construct(Application $app)
     {
         $this->app = $app;
-
+        
         $this->config = array_merge($this->config, $this->app->config->get('route'));
     }
 

@@ -13,21 +13,23 @@ class Request
 
     protected $input;
 
-    protected $post;
+    protected $param = [];
 
-    protected $get;
+    protected $post = [];
+
+    protected $get = [];
 
     protected $put;
 
-    protected $request;
+    protected $request = [];
 
     protected $controller;
 
     protected $action;
 
-    protected $cookie;
+    protected $cookie = [];
 
-    protected $file;
+    protected $file = [];
 
     protected $pathinfo;
 
@@ -37,6 +39,25 @@ class Request
      * @var string
      */
     protected $varPathinfo = 's';
+
+    /**
+     * 资源类型定义
+     * @var array
+     */
+    protected $mimeType = [
+        'xml'   => 'application/xml,text/xml,application/x-xml',
+        'json'  => 'application/json,text/x-json,application/jsonrequest,text/json',
+        'js'    => 'text/javascript,application/javascript,application/x-javascript',
+        'css'   => 'text/css',
+        'rss'   => 'application/rss+xml',
+        'yaml'  => 'application/x-yaml,text/yaml',
+        'atom'  => 'application/atom+xml',
+        'pdf'   => 'application/pdf',
+        'text'  => 'text/plain',
+        'image' => 'image/png,image/jpg,image/jpeg,image/pjpeg,image/gif,image/webp,image/*',
+        'csv'   => 'text/csv',
+        'html'  => 'text/html,application/xhtml+xml,*/*',
+    ];
 
     /**
      * 构造函数

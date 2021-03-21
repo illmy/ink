@@ -2,6 +2,8 @@
 
 namespace elaborate;
 
+use elaborate\orm\Db;
+
 class Application extends Container
 {
     /**
@@ -84,6 +86,7 @@ class Application extends Container
         static::setInstance($this);
 
         $this->instance('app', $this);
+        $this->instance('elaborate\Application', $this);
         $this->instance('elaborate\Container', $this);
     }
 
@@ -216,8 +219,7 @@ class Application extends Container
     public function initialize()
     {
         $this->load();
-        date_default_timezone_set($this->config->get('app.default_timezone', 'Asia/Shanghai'));
-
+        date_default_timezone_set($this->app->config->get('app.default_timezone', 'Asia/Shanghai'));
         $this->provider();
     }
 
@@ -255,7 +257,7 @@ class Application extends Container
         }
 
         foreach ($files as $file) {
-            $this->config->load($file, pathinfo($file, PATHINFO_FILENAME));
+            $this->app->config->load($file, pathinfo($file, PATHINFO_FILENAME));
         }
     }
 
@@ -267,7 +269,7 @@ class Application extends Container
     public function loadMiddleware()
     {
         if (is_file($this->getBasePath() . 'middleware.php')) {
-            $this->middleware->import(include $this->getBasePath() . 'middleware.php');
+            $this->app->middleware->import(include $this->getBasePath() . 'middleware.php');
         }
     }
 
@@ -283,7 +285,7 @@ class Application extends Container
             $this->loadRoutes();
         } : null;
 
-        return $this->route->dispatch($request, $withRoute);
+        return $this->app->route->dispatch($request, $withRoute);
     }
 
     /**
