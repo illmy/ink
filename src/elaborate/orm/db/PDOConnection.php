@@ -39,6 +39,16 @@ abstract class PDOConnection
 
     protected $field = [];
 
+    protected $orderBy = [];
+
+    protected $limit = [];
+
+    protected $join = [];
+
+    protected $groupBy = '';
+
+    protected $alias = '';
+
     public function __construct(array $config = [])
     {
         $this->config = $config;
@@ -156,9 +166,11 @@ abstract class PDOConnection
         return $result;
     }
 
-    protected function resultToModel(array $result = [])
+    protected function resultToModel(array &$result = [])
     {
-        $this->model->newInstance($result);
+        foreach ($result as &$value) {
+            $value = $this->model->newInstance($value);
+        }
     }
 
     /**
@@ -226,13 +238,217 @@ abstract class PDOConnection
         return $this;
     }
 
+    public function groupBy(string $field)
+    {
+        $this->groupBy = $field;
+    }
+
+    public function orderBy(string $orderField, string $orderWay = 'ASC')
+    {
+        $this->orderBy = [$orderField, $orderWay];
+    }
+
+    public function limit(int $start = 0, int $limit = 0)
+    {
+        if (empty($limit)) {
+            $this->limit = [$start];
+        } else {
+            $this->limit = [$start, $limit];
+        }
+
+        return $this;
+    }
+
+    public function leftJoin(string $table, string $left, string $right)
+    {
+        $this->join = array_merge($this->join, [$table, $left, $right]);
+
+        return $this;
+    }
+
+    public function alias(string $name)
+    {
+        $this->alias = $name;
+        return $this;
+    }
+
     public function find()
     {
-        $this->prareSql();
+        $this->limit(1);
+        $sql = $this->parseQuerySql();
+        $result = $this->query($sql, $this->bind);
+        
+        return array_shift($result);
     }
 
     public function select()
     {
+        $sql = $this->parseQuerySql();
+        $result = $this->query($sql, $this->bind);
+
+        return $result;
+    }
+
+    private function parseQuerySql()
+    {
+        $querySql = "SELECT %FIELD% FROM %TABLE% %ALIAS% %JOIN% WHERE %WHERE% %GROUP% %ORDER% %LIMIT%";
+
+        $fields = implode(',', $this->field);
+
+        $join = [];
+        if (!empty($this->join)) {
+            foreach ($this->join as $key => $value) {
+                [$leftTable, $left, $right] = $value;
+                $join[] = "LEFT JOIN {$leftTable} ON {$left} = {$right}";
+            }
+        }
+        $join = implode(' ', $join);
+
+        $groupBy = '';
+        if (!empty($this->groupBy)) {
+            $groupBy = "GROUP BY {$this->groupBy}";
+        }
+
+        $orderBy = '';
+        if (!empty($this->orderBy)) {
+            [$field, $way] = $this->orderBy;
+            $orderBy = "ORDER BY {$field} {$way}";
+        }
+
+        $limit = '';
+        if (!empty($this->limit)) {
+            if (isset($this->limit[1])) {
+                [$start, $lm] = $this->limit;
+                $limit = "limit {$start}, {$lm}";
+            } else {
+                $lm = $this->limit[0];
+                $limit = "limit {$lm}";
+            }
+        }
+
+        $alias = '';
+        if (!empty($this->alias)) {
+            $alias = "as {$this->alias}"; 
+        }
+        return str_replace(
+            ['%FIELD', '%TABLE%', '%ALIAS%', '%JOIN%', '%WHERE%', '%GROUP%', '%ORDER%', '%LIMIT%'],
+            [
+                $this->table,
+                $fields,
+                $alias,
+                $join,
+                $this->parseWhere(),
+                $groupBy,
+                $orderBy,
+                $limit
+            ],
+            $querySql
+        );
+    }
+
+    /**
+     * 插入数据
+     *
+     * @param array $data
+     * @return int
+     */
+    public function insert(array $data = [])
+    {
+        $sql = $this->parseInsertSql($data);
+        $result = $this->execute($sql);
+        if ($result) {
+            $result = $this->connect()->lastInsertId();
+        }
+        return $result;
+    }
+
+    private function parseInsertSql(array $data = [])
+    {
+        $insertSql = "INSERT INTO %TABLE% (%FIELD%) VALUES (%DATA%)";
+
+        $fields = array_keys($data);
+        $values = array_values($data);
+
+        return str_replace(
+            ['%TABLE', '%FIELD%', '%DATA%'],
+            [
+                $this->table,
+                implode(', ', $fields),
+                implode(', ', $values)
+            ],
+            $insertSql
+        );
+    }
+
+    /**
+     * 更新数据
+     *
+     * @param array $data
+     * @return int
+     */
+    public function update(array $data = [])
+    {
+        $sql = $this->parseUpdateSql($data);
+        $result = $this->execute($sql, $this->bind);
+
+        return $result;
+    }
+
+    private function parseUpdateSql(array $data)
+    {
+        $updateSql = "UPDATE %TABLE% SET %SET% WHERE %WHERE%";
+
+        if (empty($data)) {
+            return '';
+        }
+
+        $set = [];
+        foreach ($data as $key => $val) {
+            $set[] = $key . ' = ' . $val;
+        }
+
+        return str_replace(
+            ['%TABLE%', '%SET%', '%WHERE%'],
+            [
+                $this->table,
+                implode(' , ', $set),
+                $this->parseWhere()
+            ],
+            $updateSql);
+    }
+
+    public function delete()
+    {
+        $sql = $this->parseDeleteSql();
+        $result = $this->execute($sql, $this->bind);
+
+        return $result;
+    }
+
+    private function parseDeleteSql()
+    {
+        $deleteSql = "DELETE FROM %TABLE% WHERE %WHERE%";
+
+        return str_replace(
+            ['%TABLE%', '%WHERE%'],
+            [
+                $this->table,
+                $this->parseWhere()
+            ],
+            $deleteSql);
+
+    }
+
+    private function parseWhere()
+    {
+        $where = [];
+        $bind = [];
+        foreach ($this->where as $key => $value) {
+            $where[] = $value[0] . ' ' . $value[1] . ' :' . $value[0];
+            $bind[$value[0]] = $value[2];
+        }
+        $this->bind = array_merge($this->bind, $bind);
+        return implode(' and ', $where);
     }
 
     /**
@@ -241,11 +457,4 @@ abstract class PDOConnection
      * @return string
      */
     abstract protected function parseDsn(array $config): string;
-
-    /**
-     * 解析sql
-     *
-     * @return string
-     */
-    abstract protected function parseSql(): string;
 }
