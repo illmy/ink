@@ -21,7 +21,7 @@ class Config implements \ArrayAccess
      *
      * @var array
      */
-    protected $configs = [];
+    protected $config = [];
 
     /**
      * 构造函数
@@ -52,7 +52,7 @@ class Config implements \ArrayAccess
             $config = include $filename;
             return is_array($config) ? $this->set($name, $config) : [];
         }
-
+        
         return $this->config;
     }
 
@@ -61,20 +61,20 @@ class Config implements \ArrayAccess
      *
      * @param string $key
      * @param string $default
-     * @return void
+     * @return mixed
      */
-    public function get(string $key = null, string $default = null)
+    public function get(string $key = null, $default = null)
     {
         if (empty($key)) {
-            return $this->configs;
+            return $this->config;
         }
 
         if (strpos($key, '.') === false) {
-            return $this->configs[$key] ?? [];
+            return $this->config[$key] ?? [];
         }
 
         $key = explode('.', $key);
-        $config = $this->configs;
+        $config = $this->config;
 
         // 按.拆分成多维数组进行判断
         foreach ($key as $val) {
