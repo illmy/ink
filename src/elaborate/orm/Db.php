@@ -18,6 +18,7 @@ class Db
     public function __construct(Config $config)
     {
         $this->config = $config;
+        Model::setDb($this);
     }
 
     /**

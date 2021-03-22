@@ -7,9 +7,15 @@ namespace elaborate;
  */
 class Request
 {
-    protected $header;
+    /**
+     * 兼容PATH_INFO获取
+     * @var array
+     */
+    protected $pathinfoFetch = ['ORIG_PATH_INFO', 'REDIRECT_PATH_INFO', 'REDIRECT_URL'];
 
-    protected $server;
+    protected $header = [];
+
+    protected $server = [];
 
     protected $input;
 

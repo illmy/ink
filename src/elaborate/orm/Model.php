@@ -27,7 +27,7 @@ class Model
      */
     protected $pk = 'id';
 
-    protected $connection;
+    protected $connection = '';
 
     protected static $db;
 
@@ -83,7 +83,7 @@ class Model
 
     public function db()
     {
-        $query = self::$db->connect($this->connection);
+        $query = self::$db->connect($this->connection)->table($this->table ? : $this->name);
 
         $query->model($this);
 
