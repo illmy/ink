@@ -20,6 +20,8 @@ class Route
      */
     protected $request;
 
+    protected $dispatch;
+
     /**
      * 构造方法
      *
@@ -32,13 +34,7 @@ class Route
         $this->config = array_merge($this->config, $this->app->config->get('route'));
     }
 
-    /**
-     * 路由调度
-     * @param Request $request
-     * @param Closure|bool $withRoute
-     * @return Response
-     */
-    public function dispatch(Request $request, $withRoute = true)
+    public function init(Request $request, $withRoute = true)
     {
         $this->request = $request;
         
@@ -54,7 +50,18 @@ class Route
 
         $dispatch->init($this->app);
 
-        return $dispatch->run();
+        $this->dispatch = $dispatch;
+    }
+
+    /**
+     * 路由调度
+     * @param Request $request
+     * @param Closure|bool $withRoute
+     * @return Response
+     */
+    public function dispatch()
+    {
+        return $this->dispatch->run();
     }
 
     /**

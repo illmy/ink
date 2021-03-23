@@ -148,6 +148,34 @@ class Request
     }
 
     /**
+     * 获取cookie参数
+     * @param  mixed        $name 数据名称
+     * @param  string       $default 默认值
+     * @param  string|array $filter 过滤方法
+     * @return mixed
+     */
+    public function cookie(string $name = '', $default = null, $filter = '')
+    {
+        if (!empty($name)) {
+            $data = $this->getData($this->cookie, $name, $default);
+        } else {
+            $data = $this->cookie;
+        }
+
+        // 解析过滤器
+        $filter = $this->getFilter($filter, $default);
+
+        if (is_array($data)) {
+            array_walk_recursive($data, [$this, 'filterValue'], $filter);
+        } else {
+            $this->filterValue($data, $name, $filter);
+        }
+
+        return $data;
+    }
+
+
+    /**
      * 获取当前请求URL的pathinfo信息（含URL后缀）
      * @access public
      * @return string
@@ -561,5 +589,27 @@ class Request
     {
         $this->action = $action;
         return $this;
+    }
+
+    /**
+     * 获取当前的控制器名
+     * @param  bool $convert 转换为小写
+     * @return string
+     */
+    public function controller(bool $convert = false): string
+    {
+        $name = $this->controller ?: '';
+        return $convert ? strtolower($name) : $name;
+    }
+
+    /**
+     * 获取当前的操作名
+     * @param  bool $convert 转换为小写
+     * @return string
+     */
+    public function action(bool $convert = false): string
+    {
+        $name = $this->action ?: '';
+        return $convert ? strtolower($name) : $name;
     }
 }

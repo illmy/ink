@@ -202,10 +202,13 @@ class Application extends Container
         // 加载全局中间件
         $this->loadMiddleware();
 
+        // 路由初始化
+        $this->dispatchToInit($request);
+
         // 执行中间件
         $response = $this->app->middleware->pipeline(function () use ($request) {
             // 路由调度  
-            return $this->dispatchToRoute($request);
+            return $this->dispatchToRoute();
         });
 
         return $response;
@@ -274,18 +277,29 @@ class Application extends Container
     }
 
     /**
-     * 使用路由调度
+     * 路由初始化
      *
-     * @param Request $request
-     * @return Response
+     * @param [type] $request
+     * @return void
      */
-    protected function dispatchToRoute($request)
+    protected function dispatchToInit($request)
     {
         $withRoute = $this->app->config->get('app.with_route', true) ? function () {
             $this->loadRoutes();
         } : null;
 
-        return $this->app->route->dispatch($request, $withRoute);
+        return $this->app->route->init($request, $withRoute);
+    }
+
+    /**
+     * 使用路由调度
+     *
+     * @param Request $request
+     * @return Response
+     */
+    protected function dispatchToRoute()
+    {
+        return $this->app->route->dispatch();
     }
 
     /**

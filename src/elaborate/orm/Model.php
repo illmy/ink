@@ -48,7 +48,7 @@ class Model
         $this->data = $data;
 
         if (empty($this->name)) {
-            // 当前模型名
+            // 当前模型名   
             $name       = str_replace('\\', '/', static::class);
             $this->name = basename($name);
         }
