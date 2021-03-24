@@ -224,6 +224,27 @@ class Application extends Container
         $this->load();
         date_default_timezone_set($this->app->config->get('app.default_timezone', 'Asia/Shanghai'));
         $this->provider();
+
+        // 异常处理
+        error_reporting(E_ALL);
+        set_error_handler([$this, 'appError']);
+        set_exception_handler([$this, 'appException']);
+        register_shutdown_function([$this, 'appShutdown']);
+    }
+
+    public function appError()
+    {
+
+    }
+
+    public function appException()
+    {
+        
+    }
+
+    public function appShutdown()
+    {
+        
     }
 
     /**
