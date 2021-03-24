@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace elaborate\route;
 
 use ReflectionClass;
@@ -47,7 +49,7 @@ class Dispatch
             $result = explode('/', $result);
         }
 
-        
+
         // 获取控制器名
         $controller = strip_tags($result[0] ?: 'index');
 
@@ -97,7 +99,7 @@ class Dispatch
         }
 
         $data = $this->app->invokeReflectMethod($instance, $reflect, $vars);
-        
+
         return $this->autoResponse($data);
     }
 

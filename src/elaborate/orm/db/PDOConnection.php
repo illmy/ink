@@ -78,7 +78,7 @@ abstract class PDOConnection
         $config = array_merge($this->config, $config);
 
         if (isset($config['params']) && is_array($config['params'])) {
-            $params = array_merge($this->params, $config['params']);
+            $params = $config['params'] + $this->params;
         } else {
             $params = $this->params;
         }
@@ -213,7 +213,7 @@ abstract class PDOConnection
         $this->getPDOStatement($sql, $bind);
 
         $this->numRows = $this->PDOStatement->rowCount();
-
+ 
         return $this->numRows;
     }
 
@@ -400,10 +400,13 @@ abstract class PDOConnection
     public function insert(array $data = [])
     {
         $sql = $this->parseInsertSql($data);
-        $result = $this->execute($sql);
+
+        $result = $this->execute($sql, $this->bind);
         if ($result) {
             $result = $this->connect()->lastInsertId();
         }
+        $this->clearQuery();
+
         return $result;
     }
 
@@ -413,13 +416,23 @@ abstract class PDOConnection
 
         $fields = array_keys($data);
         $values = array_values($data);
-
+        
+        $values = array_map(
+            function($v) {
+                if (is_numeric($v)) {
+                    return $v;
+                }
+                return "'{$v}'";
+            },
+            $values
+        );
+        $this->bind = array_merge($this->bind, $data);
         return str_replace(
-            ['%TABLE', '%FIELD%', '%DATA%'],
+            ['%TABLE%', '%FIELD%', '%DATA%'],
             [
                 $this->table,
                 implode(', ', $fields),
-                implode(', ', $values)
+                ':' . implode(', :', $fields)
             ],
             $insertSql
         );
@@ -434,7 +447,9 @@ abstract class PDOConnection
     public function update(array $data = [])
     {
         $sql = $this->parseUpdateSql($data);
+
         $result = $this->execute($sql, $this->bind);
+        $this->clearQuery();
 
         return $result;
     }
@@ -449,7 +464,7 @@ abstract class PDOConnection
 
         $set = [];
         foreach ($data as $key => $val) {
-            $set[] = $key . ' = ' . $val;
+            $set[] = $key . ' = ' . "'{$val}'";
         }
 
         return str_replace(
@@ -466,6 +481,7 @@ abstract class PDOConnection
     {
         $sql = $this->parseDeleteSql();
         $result = $this->execute($sql, $this->bind);
+        $this->clearQuery();
 
         return $result;
     }
