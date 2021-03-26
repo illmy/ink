@@ -225,26 +225,54 @@ class Application extends Container
         date_default_timezone_set($this->app->config->get('app.default_timezone', 'Asia/Shanghai'));
         $this->provider();
 
-        // 异常处理
         error_reporting(E_ALL);
         set_error_handler([$this, 'appError']);
         set_exception_handler([$this, 'appException']);
         register_shutdown_function([$this, 'appShutdown']);
     }
 
-    public function appError()
+    /**
+     * Exception Handler
+     * @param \Throwable $e
+     */
+    public function appException(\Throwable $e): void
     {
-
+        $data = [
+            'code' => $e->getCode() ? $e->getCode() : 1002,
+            'msg' => $e->getMessage(),
+            'data' => []
+        ];
+        echo json_encode($data);
     }
 
-    public function appException()
+    /**
+     * Error Handler
+     * @param integer $errno   错误编号
+     * @param string  $errstr  详细错误信息
+     * @param string  $errfile 出错的文件
+     * @param integer $errline 出错行号
+     * @throws ErrorException
+     */
+    public function appError(int $errno, string $errstr, string $errfile = '', int $errline = 0): void
     {
-        
+        $exception = new \ErrorException($errstr, 0, $errno, $errfile, $errline);
+
+        if (error_reporting() & $errno) {
+            throw $exception;
+        }
     }
 
-    public function appShutdown()
+    /**
+     * Shutdown Handler
+     * @access public
+     */
+    public function appShutdown(): void
     {
-        
+        if (!is_null($error = error_get_last())) {
+            $exception = new \ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']);
+
+            $this->appException($exception);
+        }
     }
 
     /**

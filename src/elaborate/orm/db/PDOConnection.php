@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 namespace elaborate\orm\db;
 
 use PDO;
@@ -53,6 +54,8 @@ abstract class PDOConnection
 
     protected $join = [];
 
+    protected $leftJoin = [];
+
     protected $groupBy = '';
 
     protected $alias = '';
@@ -94,7 +97,6 @@ abstract class PDOConnection
         } catch (\PDOException $e) {
             throw $e;
         }
-
     }
 
     public function getPDOStatement(string $sql, array $bind = [])
@@ -104,7 +106,7 @@ abstract class PDOConnection
             // 记录SQL语句
             $this->queryStr = $sql;
             $this->bind     = $bind;
-
+            
             // 预处理
             $this->PDOStatement = $link->prepare($sql);
 
@@ -119,6 +121,11 @@ abstract class PDOConnection
 
             throw $e;
         }
+    }
+
+    public function getLastSql()
+    {
+        return $this->queryStr;
     }
 
     /**
@@ -152,7 +159,7 @@ abstract class PDOConnection
      */
     protected function createPdo($dsn, $username, $password, $params)
     {
-        return new PDO($dsn, $username, $password, $params); 
+        return new PDO($dsn, $username, $password, $params);
     }
 
     public function table(string $table)
@@ -213,7 +220,7 @@ abstract class PDOConnection
         $this->getPDOStatement($sql, $bind);
 
         $this->numRows = $this->PDOStatement->rowCount();
- 
+
         return $this->numRows;
     }
 
@@ -230,7 +237,7 @@ abstract class PDOConnection
      */
     public function setDb(Db $db)
     {
-        $this->db = $db;    
+        $this->db = $db;
     }
 
     /**
@@ -279,9 +286,16 @@ abstract class PDOConnection
         return $this;
     }
 
+    public function join(string $table, string $left, string $right)
+    {
+        array_push($this->join, [$table, $left, $right]);
+
+        return $this;
+    }
+
     public function leftJoin(string $table, string $left, string $right)
     {
-        $this->join = array_merge($this->join, [$table, $left, $right]);
+        array_push($this->leftJoin, [$table, $left, $right]);
 
         return $this;
     }
@@ -298,7 +312,7 @@ abstract class PDOConnection
         $sql = $this->parseQuerySql();
 
         $result = $this->query($sql, $this->bind);
-        
+
         $this->clearQuery();
 
         return array_shift($result);
@@ -314,12 +328,14 @@ abstract class PDOConnection
 
         $this->limit = [];
 
+        $this->leftJoin = [];
+
         $this->join = [];
 
         $this->groupBy = '';
 
         $this->alias = '';
-        
+
         $this->bind = [];
     }
 
@@ -343,6 +359,12 @@ abstract class PDOConnection
         $join = [];
         if (!empty($this->join)) {
             foreach ($this->join as $key => $value) {
+                [$leftTable, $left, $right] = $value;
+                $join[] = "INNER JOIN {$leftTable} ON {$left} = {$right}";
+            }
+        }
+        if (!empty($this->leftJoin)) {
+            foreach ($this->leftJoin as $key => $value) {
                 [$leftTable, $left, $right] = $value;
                 $join[] = "LEFT JOIN {$leftTable} ON {$left} = {$right}";
             }
@@ -373,7 +395,7 @@ abstract class PDOConnection
 
         $alias = '';
         if (!empty($this->alias)) {
-            $alias = "as {$this->alias}"; 
+            $alias = "as {$this->alias}";
         }
         return str_replace(
             ['%FIELD%', '%TABLE%', '%ALIAS%', '%JOIN%', '%WHERE%', '%GROUP%', '%ORDER%', '%LIMIT%'],
@@ -416,9 +438,9 @@ abstract class PDOConnection
 
         $fields = array_keys($data);
         $values = array_values($data);
-        
+
         $values = array_map(
-            function($v) {
+            function ($v) {
                 if (is_numeric($v)) {
                     return $v;
                 }
@@ -474,7 +496,8 @@ abstract class PDOConnection
                 implode(' , ', $set),
                 $this->parseWhere()
             ],
-            $updateSql);
+            $updateSql
+        );
     }
 
     public function delete()
@@ -496,21 +519,62 @@ abstract class PDOConnection
                 $this->table,
                 $this->parseWhere()
             ],
-            $deleteSql);
-
+            $deleteSql
+        );
     }
 
-    private function parseWhere()
+    protected function parseWhere()
     {
         $where = [];
-        $bind = [];
         foreach ($this->where as $value) {
-            $where[] = $value[0] . ' ' . $value[1] . ' :' . $value[0];
-            $bind[$value[0]] = $value[2];
+            $field = $value[0];
+            $ffield = str_replace('.', '', $field);
+
+            if (strpos($field, '.')) {
+                [$tb, $fd] = explode('.', $field);
+                $field = $tb . '.' . "`{$fd}`";
+            } else {
+                $field = "`{$field}`";
+            }
+
+            if ($value[1] == 'in') {
+                $where[] = $this->parseIn($field, $value[2]);
+            } else if($value[1] == 'like') {
+                $likeValue = $value['2'];
+                $where[] = $field . ' ' . $value[1] . ' ' . "'{$likeValue}'";
+            } else {
+                $ffield = $this->bindVar($value['2'], $ffield);
+                $where[] = $field . ' ' . $value[1] . ':' . $ffield;
+            }
         }
-        $this->bind = array_merge($this->bind, $bind);
 
         return implode(' and ', $where);
+    }
+
+    protected function parseIn($key, $value)
+    {
+        if (!is_array($value)) {
+            $value = explode(',', $value);
+        }
+
+        foreach ($value as $v) {
+            $name    = $this->bindVar($v);
+            $array[] = ':' . $name;
+        }
+
+        if (count($array) == 1) {
+            return $key . ' = ' . $array[0];
+        } else {
+            $value = implode(',', $array);
+        }
+        return $key . ' ' . 'IN' . ' (' . $value . ')';
+    }
+
+    protected function bindVar($value, $name = null)
+    {
+        $name = $name ?: 'InkBind_' . (count($this->bind) + 1) . '_' . mt_rand() . '_';
+        $this->bind[$name] = $value;
+        return $name;
     }
 
     /**

@@ -39,6 +39,8 @@ class Request
 
     protected $pathinfo;
 
+    protected $filter = '';
+
     /**
      * 兼容模式
      *
